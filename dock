@@ -1,0 +1,92 @@
+#!/bin/bash
+
+### [ CONFIG FILE ]
+# SOURCE: https://poesiabinaria.net/2018/02/leer-ficheros-configuracion-ini-desde-scripts-bash/
+
+CFG_FILE=.env
+
+function read_ini()
+{
+    local KEY="$1"
+    local FILE="$2"
+    awk -F "=" '/'"$KEY"'/ {print $2}' "$FILE"
+} 
+
+### [ CONFIG FILE ]
+
+### [ OPTIONS ]
+# SOURCE: https://likegeeks.com/es/scripting-de-bash-parametros-y-opciones/
+ 
+while [ -n "$1" ]; do 
+ 
+    case "$1" in
+
+    -info)      
+                CONTAINER_NAME=$(read_ini "CONTAINER_NAME" "$CFG_FILE")
+                IMAGE_NAME=$(read_ini "IMAGE_NAME" "$CFG_FILE")
+                SSH_PORT=$(read_ini "SSH_PORT" "$CFG_FILE")
+                echo "Image Name: $IMAGE_NAME" 
+                echo "Container Name : $CONTAINER_NAME"
+                echo "SSH Port: $SSH_PORT"
+                echo "Current Dir: $(pwd)"
+                ;;
+ 
+    -make)      
+                IMAGE_NAME=$(read_ini "IMAGE_NAME" "$CFG_FILE") 
+                docker build -f ./DFL/Dockerfile -t deathwalker66/$IMAGE_NAME . --no-cache 
+                ;; 
+ 
+    -start) 
+                docker-compose up -d 
+                ;; 
+ 
+    -stop) 
+                CONTAINER_NAME=$(read_ini "CONTAINER_NAME" "$CFG_FILE")
+                docker stop $CONTAINER_NAME 
+                ;; 
+
+    -restart)   
+                CONTAINER_NAME=$(read_ini "CONTAINER_NAME" "$CFG_FILE")
+                docker stop $CONTAINER_NAME && docker-compose up -d 
+                ;;
+
+    -del) 
+                CONTAINER_NAME=$(read_ini "CONTAINER_NAME" "$CFG_FILE")
+                docker container rm $CONTAINER_NAME 
+                ;; 
+
+    -ssh)       
+                SSH_PORT=$(read_ini "SSH_PORT" "$CFG_FILE")
+                ssh-keygen -f "$HOME/.ssh/known_hosts" -R "[localhost]:$SSH_PORT" 
+                ssh -o StrictHostKeyChecking=no root@localhost -p $SSH_PORT 
+                ;; 
+        
+    -debug) 
+                docker-compose up 
+                ;;
+
+    -exec) 
+                CONTAINER_NAME=$(read_ini "CONTAINER_NAME" "$CFG_FILE")
+                PARAM="$2" 
+                docker container exec -it $CONTAINER_NAME $PARAM
+                ;;
+
+    -bash) 
+                CONTAINER_NAME=$(read_ini "CONTAINER_NAME" "$CFG_FILE")
+                docker container exec -it $CONTAINER_NAME /bin/bash 
+                ;;
+
+    -chmod) 
+                dir=$(pwd)
+                sudo chmod -R 777 $dir
+                ;;
+ 
+    *) echo "Option $1 not recognized" ;; 
+ 
+    esac
+ 
+    shift
+ 
+done
+
+### [ OPTIONS ]
